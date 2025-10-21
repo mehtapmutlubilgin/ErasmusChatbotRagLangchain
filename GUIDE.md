@@ -46,10 +46,13 @@ Proje, **Erasmus programı** gibi niş bir konuda, LLM’lerin genel bilgisini k
 
 Projenin yerel ortamda çalıştırılabilmesi için gereken adımlar aşağıda açıklanmıştır.
 
- **Projeyi Klonlama:**
+   **Projeyi Klonlama:**
+  
+   ```bash
+    git clone https://github.com/mehtapmutlubilgin/ErasmusChatbotRagLangchain
+    cd ErasmusChatbotRagLangchain
+   ```
 
-git clone https://github.com/mehtapmutlubilgin/ErasmusChatbotRagLangchain
-cd ErasmusChatbotRagLangchain
 
 ### 📁 Gerekli Dosyalar
 
@@ -142,9 +145,9 @@ Web arayüzü, kullanıcının sorularını kolayca test edebilmesi için tasarl
 
 ---
 
-## 👥 Katkıda Bulunanlar
+### Contact
 
-- **Mehtap Mutlu** — Proje Sahibi  
-- **Akbank GenAI Bootcamp** — Eğitim Programı Desteği
+* Email:mehtapmutlu.bilgin06@gmail.com
+* GitHub:https://github.com/mehtapmutlubilgin
+* Linkedin:https://www.linkedin.com/in/mehtap-mutlu-bilgin-925b921b1/
 
----
