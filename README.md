@@ -60,3 +60,6 @@ Projenin kurulum ve çalıştırma adımları için detaylı rehbere buradan ula
 Projenin canlı olarak yayınlandığı web arayüzü linki aşağıdadır.
 
 > **https://erasmuschatbotraglangchain-amahtsl8cocd7pvfmnriuc.streamlit.app/**
+
+##NOT:Bu projenin RAG framework yerine, temel kütüphanelerle oluşturulmuş Custom RAG Pipeline (Özel RAG Akışı) çözümünü de aşağıdaki repomda paylaştım.
+https://github.com/mehtapmutlubilgin/EramusChatBotCustom
