@@ -12,4 +12,5 @@ google-genai
 
 # Web Arayüzü
 streamlit
+sentence-transformers
 python-dotenv # API anahtarını gizlemek için
