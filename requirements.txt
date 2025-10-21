@@ -1,16 +1,22 @@
-# LangChain ve RAG bileşenleri
+# LLM ve Embedding
+google-genai
+langchain-google-genai
+
+# LangChain Çekirdek ve Topluluk Modülleri
 langchain
 langchain-core
-langchain-community
+langchain-community 
 langchain-chroma
-pypdf  # Eğer gelecekte PDF kullanmak isterseniz
-pandas # CSV dosyasını okumak için
-tiktoken # Chunking için faydalı olabilir
+langchain-text-splitters
 
-# LLM ve Embedding Modeli (Örnek: Gemini API)
-google-genai 
+# Chroma ve Geri Getirme için Diğerleri
+chromadb
+pandas
+tiktoken
 
-# Web Arayüzü
+# Yerel Embedding (Kullanılmasa bile bağımlılıklarını sağlar)
+sentence-transformers 
+
+# Streamlit ve Ortam Değişkeni Yönetimi
 streamlit
-sentence-transformers
-python-dotenv # API anahtarını gizlemek için
+python-dotenv
