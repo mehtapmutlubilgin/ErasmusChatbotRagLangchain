@@ -2,7 +2,8 @@ import os
 import pandas as pd
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+# BURAYI DEĞİŞTİRDİK:
+from langchain_community.embeddings import HuggingFaceEmbeddings 
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
@@ -10,12 +11,18 @@ from dotenv import load_dotenv
 load_dotenv()
 # Sabitler
 CSV_FILE = "erasmus_dataset.csv"
-CHROMA_PATH = "chroma_db"
-EMBEDDING_MODEL = "models/text-embedding-004" # Google'ın önerdiği embedding modeli
+CHROMA_PATH = "chroma_db_local" # Yeni bir klasör kullanalım
+# BURAYI DEĞİŞTİRDİK:
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2" 
+# LLM kısmı setup_db.py'de yok, o yüzden burada sadece embedding değişiyor.
+
+
+# ====================================================================
+# 1. VERİ YÜKLEME VE PARÇALAMA FONKSİYONU
+# ====================================================================
 
 def load_and_split_data(file_path):
     # LangChain CSV Loader kullanarak veriyi yükle
-    # 'cevap' sütununu content olarak kullanıyoruz.
     loader = CSVLoader(file_path=file_path, encoding="utf-8", csv_args={'delimiter': ','})
     data = loader.load()
     
@@ -30,23 +37,20 @@ def load_and_split_data(file_path):
     print(f"Toplamda {len(data)} belge yüklendi. Parçalandıktan sonra {len(documents)} adet doküman parçası oluştu.")
     return documents
 
-def create_vector_store(documents):
-    # API Anahtarını os.environ'dan çekin
-    gemini_api_key = os.environ.get("GEMINI_API_KEY")
-    
-    if not gemini_api_key:
-        print("HATA: GEMINI_API_KEY ortam değişkeni bulunamadı. Lütfen CMD'de 'set GEMINI_API_KEY=...' komutuyla ayarlayın.")
-        return
 
-    # Embedding Modelini başlat
-    # Anahtarı doğrudan parametre olarak iletiyoruz.
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBEDDING_MODEL,
-        google_api_key=gemini_api_key 
-    )
+# ====================================================================
+# 2. VEKTÖR DEPO OLUŞTURMA FONKSİYONU
+# ====================================================================
+
+def create_vector_store(documents):
+    # Artık Google API anahtarına ihtiyacımız yok
+
+    # Embedding Modelini başlat (Yerel model)
+    # Bu model, dosyayı internetten bir kere indirir, sonra hep yerelden çalışır.
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
 
     # ChromaDB'yi oluştur ve dokümanları kaydet
-    print("Vektör veritabanı oluşturuluyor ve dokümanlar gömülüyor (embedding yapılıyor)...")
+    print("Vektör veritabanı oluşturuluyor ve dokümanlar yerel model ile gömülüyor...")
     
     vector_store = Chroma.from_documents(
         documents=documents,
@@ -54,6 +58,11 @@ def create_vector_store(documents):
         persist_directory=CHROMA_PATH
     )
     print(f"Dokümanlar {CHROMA_PATH} klasörüne başarıyla kaydedildi.")
+
+
+# ====================================================================
+# 3. ANA ÇALIŞTIRMA BLOĞU
+# ====================================================================
 
 if __name__ == "__main__":
     if not os.path.exists(CSV_FILE):

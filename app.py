@@ -1,34 +1,34 @@
 import os
 import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+# HuggingFace (Yerel) embedding modelini kullanıyoruz
+from langchain_community.embeddings import HuggingFaceEmbeddings 
+# Generation için Gemini kullanıyoruz
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 from langchain_core.runnables import RunnablePassthrough
 from operator import itemgetter
 from dotenv import load_dotenv
 
 # 1. Sabitler ve Kurulum
-# Ortam değişkenlerini (API anahtarını) yükle
 load_dotenv() 
 
-CHROMA_PATH = "chroma_db"
-EMBEDDING_MODEL = "models/text-embedding-004" 
+# setup_db.py dosyasında oluşturduğumuz yerel veritabanı adı
+CHROMA_PATH = "chroma_db_local" 
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2" # Yerel model
 LLM_MODEL = "gemini-2.5-flash" 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
-    st.error("Lütfen GEMINI_API_KEY ortam değişkenini ayarlayın (örn: set komutuyla veya .env dosyasında).")
+    st.error("Lütfen GEMINI_API_KEY ortam değişkenini ayarlayın (örn: set komutuyla).")
     st.stop()
 
 # 2. RAG Bileşenlerini Yükleme ve Başlatma
-# @st.cache_resource sayesinde uygulama yeniden yüklendiğinde bu bileşenler tekrar oluşturulmaz.
-@st.cache_resource
+# Caching (st.cache_resource) sorunlarını önlemek için kaldırıldı.
 def get_rag_chain(api_key):
-    # Embedding Modeli ve Vektör Deposu
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model=EMBEDDING_MODEL,
-        google_api_key=api_key # Anahtar buraya iletildi
-    )
+    # Embedding Modeli (HuggingFace yerel modelini kullanıyoruz)
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    
     try:
         # Vektör depoyu yükle
         vector_store = Chroma(
@@ -38,14 +38,15 @@ def get_rag_chain(api_key):
         # Retriever (Geri Getirici) oluştur
         retriever = vector_store.as_retriever(search_kwargs={"k": 3}) 
     except Exception as e:
-        st.error(f"Vektör veritabanı yüklenirken hata oluştu. setup_db.py çalıştı mı? Hata: {e}")
+        st.error(f"Vektör veritabanı yüklenirken kritik hata: {e}")
         st.stop()
         
-    # LLM (Large Language Model)
+    # LLM (Large Language Model) - Gemini Generation
     llm = ChatGoogleGenerativeAI(
         model=LLM_MODEL, 
-        temperature=0.1,
-        google_api_key=api_key # Anahtar buraya iletildi
+        temperature=0.4,
+        google_api_key=api_key,
+        verbose=True  # Terminalde zincir adımlarını görmemizi sağlar
     )
 
     # Prompt Şablonu
@@ -60,7 +61,7 @@ def get_rag_chain(api_key):
     
     prompt = ChatPromptTemplate.from_template(template)
 
-    # RAG Zinciri için yardımcı fonksiyon (Dokümanları okunabilir metne çevirir)
+    # RAG Zinciri için yardımcı fonksiyon
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
@@ -87,7 +88,7 @@ def get_rag_chain(api_key):
 # 3. Streamlit Arayüzü
 st.set_page_config(page_title="Erasmus RAG Chatbot", layout="wide")
 st.title("🇪🇺 Erasmus Bilgi Asistanı")
-st.caption("LangChain, ChromaDB ve Gemini ile oluşturulmuş RAG tabanlı chatbot")
+st.caption("LangChain, ChromaDB (Yerel Embedding) ve Gemini ile oluşturulmuş RAG tabanlı chatbot")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -98,7 +99,6 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # RAG zincirini yükle
-# Anahtarın global olarak ayarlandığından emin olunduğu için burası çalışır
 rag_chain = get_rag_chain(GEMINI_API_KEY)
 
 # Kullanıcı girişi
@@ -110,13 +110,35 @@ if prompt := st.chat_input("Erasmus ile ilgili bir soru sorun..."):
 
     # Asistan yanıtını oluştur ve ekle
     with st.spinner("Asistan yanıtı hazırlanıyor..."):
-        # RAG Zincirini çağır
-        response = rag_chain.invoke({"question": prompt})
+        try:
+            # RAG Zincirini çağır
+            response = rag_chain.invoke({"question": prompt})
 
-        answer = response['answer'].content
-        
-        # Kaynakları formatla
-        sources = []
-        for i, doc in enumerate(response['docs']):
-            # CSV Loader'dan gelen metadata'ları kullan
-            kategori = doc.metadata.get('kategori', 'N/A')
+            # Yanıtı ve kaynakları çekme
+            answer = response['answer'].content
+            
+            # Kaynakları formatla
+            sources = []
+            for i, doc in enumerate(response['docs']):
+                kategori = doc.metadata.get('kategori', 'N/A')
+                soru = doc.metadata.get('soru', 'N/A')
+                cevap = doc.metadata.get('cevap', doc.page_content)
+                
+                # Kaynak metnini 'cevap' sütunundan alıyoruz.
+                sources.append(f"**Kaynak {i+1}** (Kategori: {kategori}, Soru: {soru}): {cevap}")
+            
+            sources_text = "\n\n**Bağlamda Kullanılan Kaynaklar:**\n" + "\n\n".join(sources)
+            
+            full_response = answer + "\n\n---\n" + sources_text
+
+            # Asistan yanıtını göster ve geçmişe kaydet
+            with st.chat_message("assistant"):
+                st.markdown(answer)
+                with st.expander("Kullanılan Kaynakları Gör"):
+                    st.markdown(sources_text)
+                
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            
+        except Exception as e:
+             st.error(f"Yanıt oluşturulurken bir hata oluştu. Hata: {e}")
+             st.session_state.messages.append({"role": "assistant", "content": f"Hata: {e}"})
