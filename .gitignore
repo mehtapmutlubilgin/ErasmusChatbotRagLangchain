@@ -1,0 +1,14 @@
+# Python Sanal Ortamı
+venv/
+new_venv/
+
+# Vektör Veritabanı (Büyük dosyaları yüklememek için)
+chroma_db/
+.chroma/
+
+# API Anahtarları ve Hassas Bilgiler
+.env
+
+# Diğer
+__pycache__/
+*.pyc

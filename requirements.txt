@@ -1,0 +1,15 @@
+# LangChain ve RAG bileşenleri
+langchain
+langchain-core
+langchain-community
+langchain-chroma
+pypdf  # Eğer gelecekte PDF kullanmak isterseniz
+pandas # CSV dosyasını okumak için
+tiktoken # Chunking için faydalı olabilir
+
+# LLM ve Embedding Modeli (Örnek: Gemini API)
+google-genai 
+
+# Web Arayüzü
+streamlit
+python-dotenv # API anahtarını gizlemek için
